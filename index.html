@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aethos Social · Drop-In Queue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #12232B;
+    --panel: #1B323C;
+    --panel-light: #223C47;
+    --panel-lighter: #2A4650;
+    --beginner: #4C9A5A;
+    --beginner-dark: #3A7A46;
+    --beginner-tint: rgba(76,154,90,0.14);
+    --intermediate: #3E86AE;
+    --intermediate-dark: #2E6482;
+    --intermediate-tint: rgba(62,134,174,0.14);
+    --accent: #E8C547;
+    --accent-dark: #C7A62F;
+    --text: #F3EFE4;
+    --text-muted: #93A6AC;
+    --border: rgba(243,239,228,0.12);
+    --danger: #C25B4E;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(62,134,174,0.10), transparent 45%),
+      radial-gradient(circle at 85% 90%, rgba(76,154,90,0.10), transparent 45%);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3, .display{
+    font-family: 'Oswald', sans-serif;
+    letter-spacing: 0.01em;
+  }
+  .wrap{
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px 20px 80px;
+  }
+  header.top{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:20px;
+    flex-wrap:wrap;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 18px;
+    margin-bottom: 22px;
+  }
+  header.top .title-block h1{
+    font-size: 34px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: var(--text);
+  }
+  header.top .title-block h1 span{ color: var(--accent); }
+  header.top .title-block p{
+    margin:0;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  .stats{
+    display:flex;
+    gap: 22px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .stats b{
+    display:block;
+    font-family:'Oswald', sans-serif;
+    font-size: 22px;
+    color: var(--text);
+    font-weight:600;
+  }
+  .layout{
+    display:grid;
+    grid-template-columns: 320px 1fr;
+    gap: 24px;
+    align-items:start;
+  }
+  @media (max-width: 900px){
+    .layout{ grid-template-columns: 1fr; }
+  }
+
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .panel + .panel{ margin-top: 18px; }
+  .panel h2{
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: var(--text);
+  }
+  .panel h2 small{
+    display:block;
+    font-family:'Inter',sans-serif;
+    font-weight:400;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top:2px;
+  }
+
+  label{
+    display:block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 12px 0 6px;
+  }
+  label:first-of-type{ margin-top:0; }
+  input[type=text], textarea, select, input[type=number]{
+    width:100%;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 10px;
+    border-radius: 7px;
+    font-family:'Inter',sans-serif;
+    font-size: 14px;
+  }
+  textarea{ resize: vertical; min-height: 64px; line-height:1.5; }
+  input:focus, textarea:focus, select:focus{
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .level-toggle{
+    display:flex;
+    gap:8px;
+  }
+  .level-toggle button{
+    flex:1;
+    padding: 9px 6px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--panel-light);
+    color: var(--text-muted);
+    font-family:'Inter',sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor:pointer;
+  }
+  .level-toggle button.active[data-level="beginner"]{
+    background: var(--beginner-tint);
+    border-color: var(--beginner);
+    color: var(--text);
+  }
+  .level-toggle button.active[data-level="intermediate"]{
+    background: var(--intermediate-tint);
+    border-color: var(--intermediate);
+    color: var(--text);
+  }
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    border:none;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: 7px;
+    padding: 10px 14px;
+  }
+  .btn-primary{
+    background: var(--accent);
+    color: #1B2318;
+    width:100%;
+    margin-top:14px;
+  }
+  .btn-primary:hover{ background: var(--accent-dark); }
+  .btn-ghost{
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover{ color: var(--text); border-color: var(--text-muted); }
+  .btn-clear{
+    background: var(--panel-lighter);
+    color: var(--text);
+    border: 1px solid var(--border);
+    width:100%;
+    margin-top:12px;
+  }
+  .btn-clear:hover{ border-color: var(--danger); color: var(--danger); }
+  .hint{ font-size:11px; color:var(--text-muted); margin-top:6px; line-height:1.5; }
+
+  .settings-row{
+    display:flex;
+    gap: 12px;
+  }
+  .settings-row > div{ flex:1; }
+
+  .queue-block{ margin-top: 18px; }
+  .queue-block:first-child{ margin-top: 0; }
+  .queue-label{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:8px;
+  }
+  .queue-label .name{
+    font-size: 13px;
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .dot.beginner{ background: var(--beginner); }
+  .dot.intermediate{ background: var(--intermediate); }
+  .queue-count{
+    font-size:11px;
+    color: var(--text-muted);
+    background: var(--panel-light);
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .chips{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    min-height: 6px;
+  }
+  .chip{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 8px 7px 10px;
+    font-size: 13px;
+  }
+  .chip .pos{
+    color: var(--text-muted);
+    font-size:11px;
+    margin-right:7px;
+    font-family:'Oswald',sans-serif;
+  }
+  .chip button{
+    background:none; border:none; color: var(--text-muted);
+    cursor:pointer; font-size:15px; line-height:1; padding:2px 4px;
+  }
+  .chip button:hover{ color: var(--danger); }
+  .empty-note{
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 6px 2px;
+  }
+
+  section.court-section{ margin-bottom: 28px; }
+  .section-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom: 14px;
+  }
+  .section-head .bar{ width:5px; height:22px; border-radius:3px; }
+  .section-head.beginner .bar{ background: var(--beginner); }
+  .section-head.intermediate .bar{ background: var(--intermediate); }
+  .section-head h3{ margin:0; font-size:19px; font-weight:600; }
+  .section-head .count{ color: var(--text-muted); font-size:13px; font-family:'Inter',sans-serif; }
+
+  .court-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 14px;
+  }
+  .court-card{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    border-top: 3px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    min-height: 190px;
+  }
+  .court-card.beginner{ border-top-color: var(--beginner); }
+  .court-card.intermediate{ border-top-color: var(--intermediate); }
+  .court-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom: 10px;
+  }
+  .court-num-wrap{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    cursor:pointer;
+    min-width:0;
+  }
+  .court-num-wrap .court-num{
+    font-family:'Oswald',sans-serif;
+    font-size: 22px;
+    font-weight:700;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    max-width: 118px;
+  }
+  .rename-btn{
+    background:none;
+    border:none;
+    color: var(--text-muted);
+    cursor:pointer;
+    font-size:12px;
+    padding:2px;
+    line-height:1;
+    flex-shrink:0;
+  }
+  .rename-btn:hover{ color: var(--text); }
+  .court-rename-input{
+    font-family:'Oswald', sans-serif;
+    font-size: 18px;
+    font-weight:700;
+    padding: 3px 7px;
+    border-radius: 5px;
+    border: 1px solid var(--accent);
+    background: var(--panel-light);
+    color: var(--text);
+    width: 100%;
+    max-width: 150px;
+  }
+  .court-status{
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 7px;
+    border-radius: 20px;
+    font-weight:600;
+  }
+  .court-status.playing{ background: var(--accent); color:#1B2318; }
+  .court-status.open{ background: var(--panel-light); color: var(--text-muted); }
+
+  .court-players{
+    list-style:none;
+    margin:0; padding:0;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+  .court-players li{
+    font-size: 13.5px;
+    padding: 5px 8px;
+    background: var(--panel-light);
+    border-radius: 6px;
+  }
+  .court-empty{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    padding: 6px;
+    line-height:1.5;
+  }
+  footer.credit{
+    text-align:center;
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-top: 40px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="title-block">
+      <h1>Aethos <span>Social</span></h1>
+      <p>Drop-in queue · add players, and open courts fill automatically as groups of four.</p>
+    </div>
+    <div class="stats">
+      <div><b id="statInPlay">0/0</b>courts in play</div>
+      <div><b id="statQueue">0</b>players waiting</div>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar">
+
+      <div class="panel">
+        <h2>Add players<small>They join the queue and courts fill automatically.</small></h2>
+
+        <label>Skill level</label>
+        <div class="level-toggle" id="addLevelToggle">
+          <button type="button" data-level="beginner" class="active">Beginner</button>
+          <button type="button" data-level="intermediate">Intermediate</button>
+        </div>
+
+        <label for="singleName">One player</label>
+        <input type="text" id="singleName" placeholder="Player name" autocomplete="off">
+        <button class="btn btn-ghost" style="width:100%; margin-top:8px;" id="addOneBtn">Add to queue</button>
+
+        <label for="groupNames">Or add several at once</label>
+        <textarea id="groupNames" placeholder="One name per line&#10;e.g.&#10;Sam&#10;Priya&#10;Jordan&#10;Lee"></textarea>
+
+        <label for="groupCourtSelect">Assign to court (optional)</label>
+        <select id="groupCourtSelect">
+          <option value="">Auto-assign next open court</option>
+        </select>
+
+        <button class="btn btn-primary" id="addGroupBtn">Add players to queue</button>
+        <p class="hint">Leave court on auto-assign and groups of four seat themselves on the next open court. Pick a specific court to send four names straight there instead.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Settings<small>10–16 courts, split by level.</small></h2>
+        <div class="settings-row">
+          <div>
+            <label for="beginnerCourtsInput">Beginner courts</label>
+            <input type="number" id="beginnerCourtsInput" min="0" max="16" value="5">
+          </div>
+          <div>
+            <label for="intermediateCourtsInput">Intermediate courts</label>
+            <input type="number" id="intermediateCourtsInput" min="0" max="16" value="7">
+          </div>
+        </div>
+        <p class="hint" id="settingsHint">Total: 12 courts</p>
+        <button class="btn btn-ghost" style="width:100%; margin-top:10px;" id="applySettingsBtn">Apply court split</button>
+      </div>
+
+      <div class="panel">
+        <h2>Queue</h2>
+
+        <div class="queue-block">
+          <div class="queue-label">
+            <span class="name"><span class="dot beginner"></span>Beginner</span>
+            <span class="queue-count" id="beginnerQueueCount">0 waiting</span>
+          </div>
+          <div class="chips" id="beginnerQueueList"></div>
+        </div>
+
+        <div class="queue-block">
+          <div class="queue-label">
+            <span class="name"><span class="dot intermediate"></span>Intermediate</span>
+            <span class="queue-count" id="intermediateQueueCount">0 waiting</span>
+          </div>
+          <div class="chips" id="intermediateQueueList"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: COURTS -->
+    <div class="courts">
+      <section class="court-section">
+        <div class="section-head beginner">
+          <span class="bar"></span>
+          <h3>Beginner courts</h3>
+          <span class="count" id="beginnerSectionCount"></span>
+        </div>
+        <div class="court-grid" id="beginnerCourtGrid"></div>
+      </section>
+
+      <section class="court-section">
+        <div class="section-head intermediate">
+          <span class="bar"></span>
+          <h3>Intermediate courts</h3>
+          <span class="count" id="intermediateSectionCount"></span>
+        </div>
+        <div class="court-grid" id="intermediateCourtGrid"></div>
+      </section>
+    </div>
+
+  </div>
+
+  <footer class="credit">Queue resets if this page is reloaded — it isn't saved anywhere. Keep the tab open during your session.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- state ----------
+  let idCounter = 1;
+  const nextId = () => idCounter++;
+
+  let addLevel = "beginner";
+  let editingCourtId = null;
+  let suppressNextFocusout = false;
+
+  let state = {
+    courts: [],           // {id, num, level, players: [names]}
+    queues: {
+      beginner: [],        // {id, name}
+      intermediate: []
+    }
+  };
+
+  function buildCourts(beginnerCount, intermediateCount){
+    // Preserve currently seated players by pushing them back to the FRONT of their queue
+    // so no one already checked in is lost when the layout changes.
+    const displaced = { beginner: [], intermediate: [] };
+    state.courts.forEach(c => {
+      if(c.players.length){
+        displaced[c.level].push(...c.players.map(name => ({id: nextId(), name})));
+      }
+    });
+
+    const courts = [];
+    let num = 1;
+    for(let i=0;i<beginnerCount;i++){
+      courts.push({id: nextId(), num: num, level: "beginner", name: "Court " + num, players: []});
+      num++;
+    }
+    for(let i=0;i<intermediateCount;i++){
+      courts.push({id: nextId(), num: num, level: "intermediate", name: "Court " + num, players: []});
+      num++;
+    }
+    state.courts = courts;
+
+    state.queues.beginner = [...displaced.beginner, ...state.queues.beginner];
+    state.queues.intermediate = [...displaced.intermediate, ...state.queues.intermediate];
+
+    tryAutoAssign("beginner");
+    tryAutoAssign("intermediate");
+    render();
+  }
+
+  function tryAutoAssign(level){
+    let assignedSomething = true;
+    while(assignedSomething){
+      assignedSomething = false;
+      if(state.queues[level].length >= 4){
+        const openCourt = state.courts.find(c => c.level === level && c.players.length === 0);
+        if(openCourt){
+          const group = state.queues[level].splice(0,4);
+          openCourt.players = group.map(p => p.name);
+          assignedSomething = true;
+        }
+      }
+    }
+  }
+
+  function addToQueue(level, names){
+    const clean = names.map(n => n.trim()).filter(Boolean);
+    if(!clean.length) return;
+    clean.forEach(name => state.queues[level].push({id: nextId(), name}));
+    tryAutoAssign(level);
+    render();
+  }
+
+  function removeFromQueue(level, id){
+    state.queues[level] = state.queues[level].filter(p => p.id !== id);
+    render();
+  }
+
+  function clearCourt(courtId){
+    const court = state.courts.find(c => c.id === courtId);
+    if(!court) return;
+    court.players = [];
+    tryAutoAssign(court.level);
+    render();
+  }
+
+  // Manually seat a specific new group directly onto a chosen open court,
+  // bypassing the queue and the auto-assign order.
+  function seatGroupOnCourt(courtId, names){
+    const court = state.courts.find(c => c.id === courtId);
+    if(!court || court.players.length > 0) return false;
+    court.players = names.slice(0, 4);
+    return true;
+  }
+
+  // Manually pull the next 4 already-waiting players onto a chosen open court,
+  // for when staff want to control exactly which physical court fills next.
+  function seatNextFromQueue(courtId){
+    const court = state.courts.find(c => c.id === courtId);
+    if(!court || court.players.length > 0) return;
+    const q = state.queues[court.level];
+    if(q.length < 4) return;
+    const group = q.splice(0, 4);
+    court.players = group.map(p => p.name);
+    render();
+  }
+
+  function renameCourt(courtId, newName){
+    const court = state.courts.find(c => c.id === courtId);
+    if(!court) return;
+    const trimmed = newName.trim();
+    court.name = trimmed ? trimmed : ("Court " + court.num);
+  }
+
+  // ---------- rendering ----------
+  function render(){
+    // queues
+    renderQueue("beginner");
+    renderQueue("intermediate");
+
+    populateCourtSelect();
+
+    // courts
+    renderCourtGrid("beginner", document.getElementById("beginnerCourtGrid"));
+    renderCourtGrid("intermediate", document.getElementById("intermediateCourtGrid"));
+
+    const beginnerCourts = state.courts.filter(c=>c.level==="beginner");
+    const intermediateCourts = state.courts.filter(c=>c.level==="intermediate");
+    document.getElementById("beginnerSectionCount").textContent =
+      beginnerCourts.filter(c=>c.players.length).length + " of " + beginnerCourts.length + " in play";
+    document.getElementById("intermediateSectionCount").textContent =
+      intermediateCourts.filter(c=>c.players.length).length + " of " + intermediateCourts.length + " in play";
+
+    const totalInPlay = state.courts.filter(c=>c.players.length).length;
+    document.getElementById("statInPlay").textContent = totalInPlay + "/" + state.courts.length;
+    document.getElementById("statQueue").textContent =
+      state.queues.beginner.length + state.queues.intermediate.length;
+
+    if(editingCourtId !== null){
+      const input = document.querySelector('.court-rename-input[data-rename="' + editingCourtId + '"]');
+      if(input){ input.focus(); input.select(); }
+    }
+  }
+
+  function renderQueue(level){
+    const listEl = document.getElementById(level + "QueueList");
+    const countEl = document.getElementById(level + "QueueCount");
+    const q = state.queues[level];
+    countEl.textContent = q.length + " waiting";
+    if(!q.length){
+      listEl.innerHTML = '<div class="empty-note">No one waiting</div>';
+      return;
+    }
+    listEl.innerHTML = q.map((p, idx) => `
+      <div class="chip">
+        <span><span class="pos">${idx+1}</span>${escapeHtml(p.name)}</span>
+        <button data-remove="${level}:${p.id}" title="Remove from queue" aria-label="Remove ${escapeHtml(p.name)} from queue">&times;</button>
+      </div>
+    `).join("");
+  }
+
+  function renderCourtGrid(level, gridEl){
+    const courts = state.courts.filter(c => c.level === level);
+    if(!courts.length){
+      gridEl.innerHTML = '<div class="empty-note">No courts assigned to this level. Adjust the split in Settings.</div>';
+      return;
+    }
+    gridEl.innerHTML = courts.map(c => {
+      const occupied = c.players.length > 0;
+      const waiting = state.queues[level].length;
+      return `
+        <div class="court-card ${level}">
+          <div class="court-head">
+            ${
+              editingCourtId === c.id
+              ? `<input type="text" class="court-rename-input" data-rename="${c.id}" value="${escapeHtml(c.name)}" maxlength="24">`
+              : `<span class="court-num-wrap" data-editnum="${c.id}" title="Click to rename">
+                   <span class="court-num">${escapeHtml(c.name)}</span>
+                   <button class="rename-btn" data-editbtn="${c.id}" aria-label="Rename court" title="Rename court">&#9998;</button>
+                 </span>`
+            }
+            <span class="court-status ${occupied ? 'playing' : 'open'}">${occupied ? 'Playing' : 'Open'}</span>
+          </div>
+          ${
+            occupied
+            ? `<ul class="court-players">${c.players.map(n => `<li>${escapeHtml(n)}</li>`).join("")}</ul>
+               <button class="btn btn-clear" data-clear="${c.id}">Clear court</button>`
+            : `<div class="court-empty">
+                 <div>${
+                   waiting > 0
+                   ? `${waiting} in the ${level} queue — needs ${4 - waiting} more to fill this court`
+                   : `Open — add players to the ${level} queue`
+                 }</div>
+                 ${waiting >= 4 ? `<button class="btn btn-ghost" style="margin-top:10px;width:100%;" data-seat="${c.id}">Seat next 4 here</button>` : ""}
+               </div>`
+          }
+        </div>
+      `;
+    }).join("");
+  }
+
+  function populateCourtSelect(){
+    const sel = document.getElementById("groupCourtSelect");
+    const current = sel.value;
+    const openCourts = state.courts
+      .filter(c => c.level === addLevel && c.players.length === 0)
+      .sort((a,b) => a.num - b.num);
+    sel.innerHTML = '<option value="">Auto-assign next open court</option>' +
+      openCourts.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+    if([...sel.options].some(o => o.value === current)) sel.value = current;
+  }
+
+  function escapeHtml(str){
+    return str.replace(/[&<>"']/g, m => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[m]));
+  }
+
+  // ---------- events ----------
+  document.getElementById("addLevelToggle").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-level]");
+    if(!btn) return;
+    addLevel = btn.dataset.level;
+    document.querySelectorAll("#addLevelToggle button").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    populateCourtSelect();
+  });
+
+  document.getElementById("addOneBtn").addEventListener("click", () => {
+    const input = document.getElementById("singleName");
+    addToQueue(addLevel, [input.value]);
+    input.value = "";
+    input.focus();
+  });
+  document.getElementById("singleName").addEventListener("keydown", (e) => {
+    if(e.key === "Enter"){ document.getElementById("addOneBtn").click(); }
+  });
+
+  document.getElementById("addGroupBtn").addEventListener("click", () => {
+    const ta = document.getElementById("groupNames");
+    const courtSelect = document.getElementById("groupCourtSelect");
+    const names = ta.value.split("\n").map(n => n.trim()).filter(Boolean);
+    const courtId = courtSelect.value ? Number(courtSelect.value) : null;
+
+    if(!names.length){ return; }
+
+    if(courtId){
+      if(names.length < 4){
+        alert("Pick a specific court only once you have 4 names ready — adding these to the queue instead.");
+        addToQueue(addLevel, names);
+      } else {
+        const group = names.slice(0, 4);
+        const rest = names.slice(4);
+        const seated = seatGroupOnCourt(courtId, group);
+        if(seated){
+          if(rest.length){ addToQueue(addLevel, rest); }
+          else { render(); }
+        } else {
+          // Court was taken in the meantime — fall back to the queue.
+          addToQueue(addLevel, names);
+        }
+      }
+    } else {
+      addToQueue(addLevel, names);
+    }
+
+    ta.value = "";
+    courtSelect.value = "";
+  });
+
+  document.getElementById("beginnerCourtGrid").addEventListener("click", handleCourtClick);
+  document.getElementById("intermediateCourtGrid").addEventListener("click", handleCourtClick);
+  function handleCourtClick(e){
+    const clearBtn = e.target.closest("button[data-clear]");
+    if(clearBtn){ clearCourt(Number(clearBtn.dataset.clear)); return; }
+    const seatBtn = e.target.closest("button[data-seat]");
+    if(seatBtn){ seatNextFromQueue(Number(seatBtn.dataset.seat)); return; }
+    const editBtn = e.target.closest("button[data-editbtn]");
+    if(editBtn){ editingCourtId = Number(editBtn.dataset.editbtn); render(); return; }
+    const editSpan = e.target.closest("[data-editnum]");
+    if(editSpan){ editingCourtId = Number(editSpan.dataset.editnum); render(); return; }
+  }
+
+  function handleCourtFocusout(e){
+    const input = e.target.closest(".court-rename-input");
+    if(!input) return;
+    if(suppressNextFocusout){ suppressNextFocusout = false; return; }
+    renameCourt(Number(input.dataset.rename), input.value);
+    editingCourtId = null;
+    render();
+  }
+
+  function handleCourtKeydown(e){
+    const input = e.target.closest(".court-rename-input");
+    if(!input) return;
+    if(e.key === "Enter"){
+      input.blur();
+    } else if(e.key === "Escape"){
+      suppressNextFocusout = true;
+      editingCourtId = null;
+      render();
+    }
+  }
+
+  document.getElementById("beginnerCourtGrid").addEventListener("focusout", handleCourtFocusout);
+  document.getElementById("intermediateCourtGrid").addEventListener("focusout", handleCourtFocusout);
+  document.getElementById("beginnerCourtGrid").addEventListener("keydown", handleCourtKeydown);
+  document.getElementById("intermediateCourtGrid").addEventListener("keydown", handleCourtKeydown);
+
+  document.getElementById("beginnerQueueList").addEventListener("click", handleQueueClick);
+  document.getElementById("intermediateQueueList").addEventListener("click", handleQueueClick);
+  function handleQueueClick(e){
+    const btn = e.target.closest("button[data-remove]");
+    if(!btn) return;
+    const [level, id] = btn.dataset.remove.split(":");
+    removeFromQueue(level, Number(id));
+  }
+
+  function updateSettingsHint(){
+    const b = Number(document.getElementById("beginnerCourtsInput").value) || 0;
+    const i = Number(document.getElementById("intermediateCourtsInput").value) || 0;
+    const total = b + i;
+    const hint = document.getElementById("settingsHint");
+    hint.textContent = "Total: " + total + " courts" + (total < 10 || total > 16 ? " — recommended range is 10–16" : "");
+  }
+  document.getElementById("beginnerCourtsInput").addEventListener("input", updateSettingsHint);
+  document.getElementById("intermediateCourtsInput").addEventListener("input", updateSettingsHint);
+
+  document.getElementById("applySettingsBtn").addEventListener("click", () => {
+    const b = Math.max(0, Number(document.getElementById("beginnerCourtsInput").value) || 0);
+    const i = Math.max(0, Number(document.getElementById("intermediateCourtsInput").value) || 0);
+    buildCourts(b, i);
+  });
+
+  // ---------- init ----------
+  buildCourts(5, 7);
+  updateSettingsHint();
+})();
+</script>
+</body>
+</html>
